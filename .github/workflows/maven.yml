@@ -52,7 +52,7 @@ jobs:
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
+        username: ${{ secrets.USERNAME }} 
         key: ${{ secrets.KEY }}
         source: "target/*.jar"
         # Lightsail 目标路径
@@ -67,8 +67,13 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         script: |
-          # 使用 Systemd 重启服务
-          sudo systemctl restart swipetoeat
+          # 1. 停止旧的 Java 进程
+          sudo pkill -f 'java -jar' || true
           
-          # 检查服务状态
-          systemctl status swipetoeat --no-pager
+          # 2. 等待端口释放
+          sleep 2
+          
+          # 3. 启动新应用
+          nohup java -jar /home/ubuntu/schoolproject/swipeToEatTest/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/schoolproject/swipeToEatTest/app.log 2>&1 &
+          
+          echo "Deployment successful!"
