@@ -1,0 +1,11 @@
+Sub-Tasks
+
+[Backend] Define DietType and Allergen Enums with embedded restriction rules (Rich Domain Model).
+
+[Backend] Create UserPreference Entity and DietaryRepository.
+
+[Test] Write TDD Unit Tests covering creation, updating, removing restrictions, and edge cases.
+
+[Backend] Implement DietaryService to handle logic and persistence.
+
+[Backend] Implement DietaryController (PUT endpoint) to expose the functionality.

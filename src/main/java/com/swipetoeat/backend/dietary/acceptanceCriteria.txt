@@ -1,0 +1,9 @@
+Acceptance Criteria (AC)
+
+AC1 (Create/Update): When a user saves a preference, the system must merge the DietType's restrictions with the Allergen's restrictions into a single forbiddenItems list.
+
+AC2 (Relax Restriction): If a user changes from VEGAN to VEGETARIAN, the system must update the list: meat restrictions remain, but dairy/egg restrictions must be removed.
+
+AC3 (Validation): Selecting "OMNIVORE" with no allergies is valid and should result in an empty restriction list (allow "everything").
+
+AC4 (Idempotency): Submitting the exact same preference twice should result in the exact same list stored in the database, with no duplicates in the list.
