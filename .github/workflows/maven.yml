@@ -1,12 +1,18 @@
-name: Spring Boot CI with Coverage
+name: Spring Boot CI/CD to Lightsail
 
-on: [push, pull_request]
+# 触发条件：推送到 main 或 提交 PR 到 main 时触发
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+    # --- 1. 基础环境准备 ---
     - uses: actions/checkout@v4
     
     - name: Set up JDK 21
@@ -16,20 +22,59 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    # 运行测试并生成报告
+    # --- 2. 自动化测试 ---
     - name: Test with Maven
       run: ./mvnw -B test
 
-    # 在 GitHub 的日志里生成一个简单的覆盖率摘要
+    # 生成 JaCoCo 覆盖率徽章
     - name: Generate JaCoCo Badge
       uses: cicirello/jacoco-badge-generator@v2
       with:
         generate-branches-badge: true
         jacoco-csv-file: target/site/jacoco/jacoco.csv
 
-    # 把详细的 HTML 报告上传到 GitHub Artifacts
+    # 上传测试报告供下载
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
         name: jacoco-report
         path: target/site/jacoco/
+
+    # --- 3. 打包应用 (仅在 Push 到 main 且测试通过后执行) ---
+    - name: Package Application
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # 跳过测试，因为上面已经测过了，节省时间
+      run: ./mvnw -B package -DskipTests
+
+    # --- 4. 部署到 Lightsail (仅在 Push 到 main 时执行) ---
+    - name: Copy JAR to Lightsail
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        source: "target/*.jar"
+        # Lightsail 目标路径
+        target: "/home/ubuntu/schoolproject/swipeToEatTest"
+        strip_components: 1
+
+    - name: Restart Server
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        script: |
+          # 1. 停止旧的 Java 进程
+          sudo pkill -f 'java -jar' || true
+          
+          # 2. 等待端口释放
+          sleep 2
+          
+          # 3. 启动新应用
+          # ⚠️ 注意：请确保 jar 包名字和 pom.xml 生成的一致
+          nohup java -jar /home/ubuntu/schoolproject/swipeToEatTest/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/schoolproject/swipeToEatTest/app.log 2>&1 &
+          
+          echo "Deployment successful!"
