@@ -67,15 +67,8 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         script: |
-          # 1. 停止旧进程 (去掉了 sudo，加上了 user 限制，更安全)
-          pkill -u ubuntu -f 'java -jar' || true
+          # 使用 Systemd 重启服务
+          sudo systemctl restart swipetoeat
           
-          # 2. 等待端口释放
-          sleep 5
-          
-          # 3. 启动新进程 (关键修改：加入了 < /dev/null)
-          # 这样可以防止 GitHub Action 因为等待输出而卡死
-          nohup java -jar /home/ubuntu/schoolproject/swipeToEatTest/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/schoolproject/swipeToEatTest/app.log 2>&1 < /dev/null &
-          
-          # 4. 显式退出
-          exit 0
+          # 检查服务状态
+          systemctl status swipetoeat --no-pager
